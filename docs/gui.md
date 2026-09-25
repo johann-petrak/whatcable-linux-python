@@ -3,12 +3,13 @@
 Start the desktop window from the project directory with:
 
 ```bash
-uv run whatcable-gui
+uv run --python /usr/bin/python3 whatcable-gui
 ```
 
 GTK4, libadwaita, and PyGObject must be visible to the Python environment. See the
-[README](../README.md) for Debian/Ubuntu setup. The title shows the number of
-visible rows. Use the refresh button, F5, or Ctrl+R to rescan. The window also
+[installation guide](installation.md) for Debian/Ubuntu setup and the correct `uv`
+interpreter. The title shows the number of visible rows. Use the refresh button,
+F5, or Ctrl+R to rescan. The window also
 refreshes after relevant device events, with a short delay to combine bursts of
 notifications.
 

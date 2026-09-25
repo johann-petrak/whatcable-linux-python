@@ -3,8 +3,8 @@
 Inspect USB and USB-C information exposed by Linux sysfs.
 If installed, `lsusb` supplies additional names for matching USB devices.
 
-Guides: [command line](docs/cli.md), [GUI](docs/gui.md), and
-[terms and device identification](docs/terms.md).
+Guides: [installation](docs/installation.md), [command line](docs/cli.md),
+[GUI](docs/gui.md), and [terms and device identification](docs/terms.md).
 
 ```bash
 uv run whatcable
@@ -15,27 +15,9 @@ uv run whatcable --watch
 ```
 
 The CLI works with Python and `pyudev`. `whatcable-gui` additionally requires the
-distribution's PyGObject, GTK4, libadwaita, and GObject-introspection packages; it is
-not installed from PyPI by this project.
-
-On Debian or Ubuntu, install the native layer with:
-
-```bash
-sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1
-```
-
-On Debian or Ubuntu, configure the project environment to use the distribution's
-Python and see its GTK bindings:
-
-```bash
-uv venv --python /usr/bin/python3 --system-site-packages --allow-existing .venv
-uv sync
-uv run whatcable-gui
-```
-
-The explicit interpreter matters when another Python installation (for example,
-Conda) is the default. A normal isolated `uv` environment cannot import the
-distribution's `gi` module even when the native packages are installed.
+distribution's PyGObject, GTK4, libadwaita, and GObject-introspection packages.
+See the [installation guide](docs/installation.md) for the separate CLI and GUI
+setup steps, including how to use `uv` with the distribution's Python.
 
 For reproducible inspection and tests, `--sysfs-root DIR` expects a fixture tree with
 paths below `DIR/sys`, mirroring Linux sysfs. Missing or inaccessible kernel entries
