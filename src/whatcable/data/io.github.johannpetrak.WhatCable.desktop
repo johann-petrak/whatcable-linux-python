@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=WhatCable
+Comment=Inspect USB and USB-C cable information
+Exec=whatcable-gui
+Icon=io.github.johannpetrak.WhatCable
+Terminal=false
+Categories=System;Utility;HardwareSettings;
+Keywords=USB;USB-C;Thunderbolt;Power Delivery;Cable;
+StartupNotify=true
+X-Application-ID=io.github.johannpetrak.WhatCable

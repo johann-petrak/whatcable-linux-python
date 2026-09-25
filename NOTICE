@@ -1,0 +1,9 @@
+WhatCable for Linux is licensed under GPL-3.0-or-later.
+
+The project design and selected vendor/class lookup data are derived from the
+MIT-licensed WhatCable Linux reference by Zetaphor and the original WhatCable
+project by Darryl Morley.  Retain their applicable attribution notices.
+
+The codebase does not incorporate code from the AGPL-3.0 WhatCable GNOME
+extension.  Kernel ABI observations from publicly exposed sysfs are reimplemented
+independently.

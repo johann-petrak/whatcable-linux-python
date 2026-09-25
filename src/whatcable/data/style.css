@@ -1,0 +1,3 @@
+.charging { color: @success_color; }
+.limit { color: @warning_color; }
+.neutral { opacity: 0.75; }
