@@ -4,6 +4,8 @@ import argparse
 import json
 import re
 import signal
+import sys
+import time
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -37,6 +39,12 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--watch", action="store_true", help="refresh when relevant udev events arrive"
+    )
+    parser.add_argument(
+        "-C",
+        "--connect",
+        action="store_true",
+        help="wait for a new USB-C cable connection, show its details, and exit",
     )
     parser.add_argument("--sysfs-root", type=Path, help="fixture root containing sys/")
     parser.add_argument("--version", action="version", version="whatcable 0.1.0")
@@ -160,6 +168,64 @@ def _info_text(items: list[dict[str, object]]) -> str:
             )
         )
     return "\n\n".join(sections)
+
+
+def _new_connection(previous, current):
+    """Find a newly visible cable or partner, ignoring connections in the baseline."""
+    old_ports = {port.key: port for port in previous.typec_ports}
+    for port in current.typec_ports:
+        old = old_ports.get(port.key)
+        if old is None:
+            if port.cable is not None or port.partner is not None:
+                return port
+        elif (port.cable is not None and port.cable != old.cable) or (
+            port.partner is not None and old.partner is None
+        ):
+            return port
+    return None
+
+
+def _connect(roots, *, json_output: bool) -> None:
+    baseline = scan(roots)
+    print("Waiting for a USB-C cable connection (Ctrl+C to cancel)...", file=sys.stderr, flush=True)
+    while True:
+        time.sleep(0.5)
+        current = scan(roots)
+        port = _new_connection(baseline, current)
+        if port is None:
+            baseline = current
+            continue
+        # Give the kernel a moment to publish identity attributes after the attach event.
+        time.sleep(0.5)
+        settled = scan(roots, include_raw=True)
+        settled_port = next((item for item in settled.typec_ports if item.key == port.key), None)
+        if settled_port is None or (settled_port.cable is None and settled_port.partner is None):
+            baseline = settled
+            continue
+        current, port = settled, settled_port
+        if port.cable is None or port.cable.identity is None:
+            print(
+                "Cable identity is not exposed by the kernel; showing available port details.",
+                file=sys.stderr,
+                flush=True,
+            )
+        number = next(
+            number
+            for number, (kind, item) in enumerate(_catalog(current, True), 1)
+            if kind == "typec" and item.key == port.key
+        )
+        items = _selected_items(current, True, [number])
+        output = (
+            json.dumps(
+                {"schema_version": current.schema_version, "items": items},
+                indent=2,
+                sort_keys=True,
+            )
+            if json_output
+            else _info_text(items)
+        )
+        print(output, flush=True)
+        return
 
 
 def _text(report, include_all: bool, include_raw: bool = False) -> str:
@@ -304,11 +370,20 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
     if args.info and args.watch:
         parser.error("--info cannot be combined with --watch; item numbers can change on refresh")
+    if args.connect and (args.info or args.watch):
+        parser.error("--connect cannot be combined with --info or --watch")
     try:
         selected_numbers = _info_numbers(args.info) if args.info else None
     except ValueError as error:
         parser.error(str(error))
     roots = SysfsRoots.from_root(args.sysfs_root) if args.sysfs_root else None
+
+    if args.connect:
+        try:
+            _connect(roots, json_output=args.json)
+        except KeyboardInterrupt:
+            return
+        return
 
     def emit() -> None:
         report = scan(roots, include_raw=args.raw or selected_numbers is not None)

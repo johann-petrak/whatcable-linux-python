@@ -395,6 +395,70 @@ def test_watch_json_emission_is_one_line(tmp_path: Path, capsys, monkeypatch) ->
     assert len(capsys.readouterr().out.splitlines()) == 1
 
 
+def test_connect_waits_for_new_cable_and_shows_only_its_port(
+    tmp_path: Path, capsys, monkeypatch
+) -> None:
+    typec = tmp_path / "sys/class/typec"
+    (typec / "port0/port0-partner").mkdir(parents=True)
+    (typec / "port1").mkdir()
+    calls = 0
+
+    def attach(_seconds: float) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            identity = typec / "port1-cable/identity"
+            identity.mkdir(parents=True)
+            (identity.parent / "type").write_text("passive\n")
+            (identity / "id_header").write_text("0000046d\n")
+            (identity / "product_type_vdo1").write_text("00000442\n")
+            (identity / "custom_attribute").write_text("example\n")
+            (typec / "port1/port1-partner").mkdir()
+
+    monkeypatch.setattr("whatcable.cli.time.sleep", attach)
+    main(["-C", "--sysfs-root", str(tmp_path)])
+    captured = capsys.readouterr()
+    assert "Waiting for a USB-C cable connection" in captured.err
+    assert "port1" in captured.out
+    assert "port0" not in captured.out
+    assert "Cable info:" in captured.out
+    assert "Vendor name: Logitech" in captured.out
+    assert "custom_attribute: example" in captured.out
+    assert calls == 2
+
+
+def test_connect_reports_missing_cable_identity_as_json(
+    tmp_path: Path, capsys, monkeypatch
+) -> None:
+    typec = tmp_path / "sys/class/typec"
+    (typec / "port0").mkdir(parents=True)
+    calls = 0
+
+    def attach(_seconds: float) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            (typec / "port0/port0-partner").mkdir()
+
+    monkeypatch.setattr("whatcable.cli.time.sleep", attach)
+    main(["--connect", "--json", "--sysfs-root", str(tmp_path)])
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+    assert result["items"][0]["kind"] == "typec"
+    assert result["items"][0]["details"]["key"] == "port0"
+    assert result["items"][0]["details"]["cable_info"] is None
+    assert "Cable identity is not exposed" in captured.err
+
+
+def test_connect_rejects_watch_and_info(tmp_path: Path, capsys) -> None:
+    for option in ("--watch", "--info"):
+        arguments = ["--connect", option, "1"] if option == "--info" else ["-C", option]
+        with pytest.raises(SystemExit) as error:
+            main([*arguments, "--sysfs-root", str(tmp_path)])
+        assert error.value.code == 2
+        assert "cannot be combined" in capsys.readouterr().err
+
+
 def test_raw_json_includes_raw_sysfs_attributes(tmp_path: Path, capsys) -> None:
     device = tmp_path / "sys/bus/usb/devices/1-1"
     device.mkdir(parents=True)

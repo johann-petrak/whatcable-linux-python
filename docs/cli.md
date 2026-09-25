@@ -5,6 +5,7 @@ installed in the active Python environment:
 
 ```bash
 uv run whatcable
+uv run whatcable --connect
 uv run whatcable -i 2
 uv run whatcable --all
 uv run whatcable --json
@@ -13,6 +14,18 @@ uv run whatcable --watch
 
 The command reads Linux sysfs. It works without a USB-C controller or a connected
 USB-C device; missing kernel data appears as an empty or incomplete section.
+
+To check a newly connected USB-C cable, run `uv run whatcable --connect` (or `-C`)
+before connecting both ends. The command silently records the current ports, shows
+a waiting message, and checks for a newly exposed cable record or a newly connected
+Type-C partner. It then prints the full details of that port and exits. Existing
+connections at startup are ignored. If the kernel exposes the partner but not the
+cable's e-marker identity, the command still exits and explicitly says that the
+cable identity is unavailable. The waiting message goes to stderr, so
+`uv run whatcable --connect --json` leaves stdout as a single JSON result. Press
+Ctrl+C to cancel. The printed item number uses `--all` numbering; use `--all`
+with a later `--info` lookup. A USB device appearing without a Type-C port/partner
+record is not enough to identify the cable for this option.
 
 Each visible port, USB device, and advanced-source row has a number in square
 brackets, such as `[2]`. Use that number without brackets to inspect everything
@@ -86,6 +99,7 @@ that could match one Type-C port.
 | `--json` | Emit the complete normalized report as JSON with `schema_version: 1`. |
 | `--raw` | Include selected unprocessed sysfs attributes in text or the optional `raw` fields in JSON. |
 | `--watch` | Print a report immediately, then print a fresh report after relevant USB, Type-C, PD, or power-supply events. With `--json`, each report is one JSON line. Stop with Ctrl+C. |
+| `-C`, `--connect` | Silently record the initial state, wait for a new USB-C cable or partner on a Type-C port, print that port's full details, and exit. Cannot be combined with `--watch` or `--info`. |
 | `--no-color` | Keep terminal output uncolored; current text output is already plain. |
 | `--sysfs-root DIR` | Read a test/fixture tree under `DIR/sys` instead of the host sysfs. |
 | `--version` | Print the installed WhatCable version. |

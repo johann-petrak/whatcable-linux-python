@@ -8,6 +8,7 @@ Guides: [command line](docs/cli.md), [GUI](docs/gui.md), and
 
 ```bash
 uv run whatcable
+uv run whatcable --connect
 uv run whatcable --info 2
 uv run whatcable --json
 uv run whatcable --watch
